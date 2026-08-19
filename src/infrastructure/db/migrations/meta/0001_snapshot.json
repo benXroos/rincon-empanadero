@@ -1,5 +1,5 @@
 {
-  "id": "5e4a5667-ae97-4bd0-9143-26fc164f95e8",
+  "id": "b4979c45-e488-4af0-b4ec-ad4aada9f77e",
   "prevId": "10f22b4f-7f9b-48a0-a36e-7efd2b6ab3b1",
   "version": "7",
   "dialect": "postgresql",
@@ -58,12 +58,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -73,21 +67,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "pricing_profiles_created_by_users_id_fk": {
-          "name": "pricing_profiles_created_by_users_id_fk",
-          "tableFrom": "pricing_profiles",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

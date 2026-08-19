@@ -37,9 +37,6 @@ export const pricingProfiles = pgTable("pricing_profiles", {
   comisionPlataformaPct: numeric("comision_plataforma_pct", { precision: 6, scale: 4 }).notNull(),
   ivaComisionPct: numeric("iva_comision_pct", { precision: 6, scale: 4 }).notNull(),
   comisionTarjetasPct: numeric("comision_tarjetas_pct", { precision: 6, scale: 4 }).notNull(),
-  createdBy: uuid("created_by")
-    .notNull()
-    .references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
