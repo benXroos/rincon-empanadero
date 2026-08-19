@@ -6,6 +6,7 @@ import {
   packs,
   packSlots,
   priceListItems,
+  packPriceListItems,
   type NewProduct,
   type NewFlavor,
   type NewPack,
@@ -135,4 +136,45 @@ export async function upsertPriceListItem(
 
 export async function listPriceListItems(flavorId: string) {
   return getDb().select().from(priceListItems).where(eq(priceListItems.flavorId, flavorId));
+}
+
+/**
+ * CORRECTION (post-Phase-3): a pack's price for a channel — its OWN fixed
+ * admin-set value, never the sum of its chosen flavors' `price_list_items`.
+ * Mirrors `upsertPriceListItem` exactly, keyed by `packId` instead of
+ * `flavorId`. Phase 6's checkout total logic MUST call
+ * `listPackPriceListItems`/this table's price directly for a pack line —
+ * summing flavor prices for a pack is the exact bug this correction fixes.
+ */
+export async function upsertPackPriceListItem(
+  packId: string,
+  channel: SalesChannel,
+  price: Decimal.Value,
+) {
+  const db = getDb();
+  const existing = await db
+    .select()
+    .from(packPriceListItems)
+    .where(and(eq(packPriceListItems.packId, packId), eq(packPriceListItems.channel, channel)));
+
+  const priceString = price.toString();
+
+  if (existing[0]) {
+    const [updated] = await db
+      .update(packPriceListItems)
+      .set({ price: priceString, computedAt: new Date() })
+      .where(eq(packPriceListItems.id, existing[0].id))
+      .returning();
+    return updated;
+  }
+
+  const [inserted] = await db
+    .insert(packPriceListItems)
+    .values({ packId, channel, price: priceString })
+    .returning();
+  return inserted;
+}
+
+export async function listPackPriceListItems(packId: string) {
+  return getDb().select().from(packPriceListItems).where(eq(packPriceListItems.packId, packId));
 }

@@ -142,3 +142,31 @@ export const priceListItems = pgTable(
 
 export type PriceListItem = typeof priceListItems.$inferSelect;
 export type NewPriceListItem = typeof priceListItems.$inferInsert;
+
+/**
+ * CORRECTION (post-Phase-3): a pack's sale price is its OWN admin-editable
+ * fixed price per channel — NOT derived by summing its chosen flavors'
+ * prices. Owner-confirmed against the real current storefront: individual
+ * empanada = $2500, but Docena (12) = $25000 and Media Docena (6) = $13000,
+ * both well below the naive per-flavor sum (12×2500=$30000, 6×2500=$15000).
+ * Packs carry no per-flavor surcharge regardless of which flavors are
+ * chosen. Mirrors `price_list_items`'s exact shape/pattern, keyed by
+ * `packId` instead of `flavorId` — a pack's price is looked up here, never
+ * computed from `price_list_items`.
+ */
+export const packPriceListItems = pgTable(
+  "pack_price_list_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    packId: uuid("pack_id")
+      .notNull()
+      .references(() => packs.id),
+    channel: salesChannelEnum("channel").notNull(),
+    price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique().on(table.packId, table.channel)],
+);
+
+export type PackPriceListItem = typeof packPriceListItems.$inferSelect;
+export type NewPackPriceListItem = typeof packPriceListItems.$inferInsert;

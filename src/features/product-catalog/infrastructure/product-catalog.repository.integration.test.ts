@@ -4,7 +4,14 @@ config({ path: ".env.local" });
 import { afterEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/infrastructure/db/client";
-import { products, flavors, packs, packSlots, priceListItems } from "@/infrastructure/db/schema";
+import {
+  products,
+  flavors,
+  packs,
+  packSlots,
+  priceListItems,
+  packPriceListItems,
+} from "@/infrastructure/db/schema";
 import {
   insertProduct,
   insertFlavor,
@@ -14,6 +21,8 @@ import {
   listChoosableFlavorsForPack,
   upsertPriceListItem,
   listPriceListItems,
+  upsertPackPriceListItem,
+  listPackPriceListItems,
 } from "@/features/product-catalog/infrastructure/product-catalog.repository";
 
 /**
@@ -34,6 +43,7 @@ describe.skipIf(!hasDatabase)("product-catalog repository (live Neon integration
     const db = getDb();
     for (const packId of createdPackIds.splice(0)) {
       await db.delete(packSlots).where(eq(packSlots.packId, packId));
+      await db.delete(packPriceListItems).where(eq(packPriceListItems.packId, packId));
       await db.delete(packs).where(eq(packs.id, packId));
     }
     for (const flavorId of createdFlavorIds.splice(0)) {
@@ -92,5 +102,52 @@ describe.skipIf(!hasDatabase)("product-catalog repository (live Neon integration
 
     expect(items).toHaveLength(1);
     expect(items[0]?.price).toBe("1600.00");
+  });
+
+  /**
+   * CORRECTION: a pack's price is its OWN fixed price per channel, looked
+   * up directly — never derived by summing its chosen flavors' prices.
+   * Owner-confirmed real-site example this fixture mirrors: individual
+   * empanada $2500, but Docena (12) = $25000 (well below the naive
+   * 12×2500=$30000 sum).
+   */
+  it("upserts a pack_price_list_item so a second write for the same pack+channel updates, not duplicates", async () => {
+    const suffix = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const docena = await insertPack({ name: `Docena ${suffix}`, unitCount: 12 });
+    createdPackIds.push(docena.id);
+
+    await upsertPackPriceListItem(docena.id, "own", "25000.00");
+    await upsertPackPriceListItem(docena.id, "own", "26000.00");
+
+    const items = await listPackPriceListItems(docena.id);
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.price).toBe("26000.00");
+  });
+
+  it("keeps the pack's fixed price independent of the sum of its chosen flavors' prices", async () => {
+    const suffix = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const product = await insertProduct({ name: `Empanada ${suffix}` });
+    createdProductIds.push(product.id);
+
+    const carne = await insertFlavor({
+      productId: product.id,
+      name: `Carne cuchillo ${suffix}`,
+      costoMateriales: "1003.4096",
+    });
+    createdFlavorIds.push(carne.id);
+    await upsertPriceListItem(carne.id, "own", "2500.00");
+
+    const docena = await insertPack({ name: `Docena ${suffix}`, unitCount: 12 });
+    createdPackIds.push(docena.id);
+    await setPackFlavors(docena.id, [carne.id]);
+    await upsertPackPriceListItem(docena.id, "own", "25000.00");
+
+    const items = await listPackPriceListItems(docena.id);
+
+    // Naive sum would be 12 × 2500.00 = 30000.00 — the fixed pack price
+    // must NOT equal that naive sum.
+    expect(items[0]?.price).toBe("25000.00");
+    expect(items[0]?.price).not.toBe("30000.00");
   });
 });
