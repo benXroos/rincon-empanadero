@@ -24,7 +24,15 @@ Create a `.env.local` (never committed — see `.gitignore`) with:
 | `AUTH_SECRET`  | Auth.js signing secret. Generate with `npx auth secret` or `openssl rand -base64 33`.                                                                        |
 | `NEXTAUTH_URL` | Base URL for Auth.js callbacks in development, e.g. `http://localhost:3000`.                                                                                 |
 
-No live Neon credentials exist yet — Phase 1 wires the Drizzle/Neon client and Auth.js Credentials skeleton against these env var names only.
+### Provisioning the first admin user
+
+There is no public signup form — accounts are admin-provisioned (design decision #4). Create or update a user with:
+
+```bash
+pnpm db:seed-admin -- --name="Ana" --email=ana@rinconempanadero.com --password=change-me --role=admin
+```
+
+Omit `--role` to create a `colaborador` instead. Re-running with the same `--email` updates that user's name/password/role rather than failing.
 
 ## Scripts
 
@@ -41,6 +49,7 @@ No live Neon credentials exist yet — Phase 1 wires the Drizzle/Neon client and
 | `pnpm db:generate`                  | Generate Drizzle migrations from `src/infrastructure/db/schema.ts` |
 | `pnpm db:migrate`                   | Apply migrations                                                   |
 | `pnpm db:studio`                    | Drizzle Studio                                                     |
+| `pnpm db:seed-admin`                | Create/update an admin or colaborador user (see above)             |
 
 ## Project Structure
 
