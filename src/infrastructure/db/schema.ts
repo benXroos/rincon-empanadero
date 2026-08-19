@@ -170,3 +170,59 @@ export const packPriceListItems = pgTable(
 
 export type PackPriceListItem = typeof packPriceListItems.$inferSelect;
 export type NewPackPriceListItem = typeof packPriceListItems.$inferInsert;
+
+/**
+ * sales-orders capability (spec "Record orders per channel"). A sale is a
+ * COMPLETED-SALE record — no pending/paid/fulfilled state machine (MVP
+ * scope decision resolving the proposal's unstated order-state-machine
+ * ambiguity: if a sale is being recorded, it happened). `paymentMethod` is
+ * scoped to the confirmed MVP payment methods only — no Mercado Pago.
+ * `totalAmount` is the sum of its lines' `lineTotal`, computed once at
+ * creation by `features/sales-orders/domain/compute-sale-totals.ts` and
+ * stored as-is (never recomputed from the lines at read time), so a later
+ * catalog re-price never rewrites a historical sale's total — the exact
+ * snapshot discipline design decision #7 established for `pricing_profile`.
+ */
+export const paymentMethodEnum = pgEnum("payment_method", ["transfer", "cash"]);
+
+export const salesOrders = pgTable("sales_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  channel: salesChannelEnum("channel").notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+  soldAt: timestamp("sold_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SalesOrder = typeof salesOrders.$inferSelect;
+export type NewSalesOrder = typeof salesOrders.$inferInsert;
+
+/**
+ * `sale_item_type` distinguishes whether a line references a `flavor` (an
+ * individually-sold unit) or a `pack` (docena/media docena) — the same two
+ * sellable shapes `product-catalog` already prices independently via
+ * `price_list_items`/`pack_price_list_items`. `itemId` intentionally has NO
+ * foreign key: it is polymorphic (a flavor id or a pack id depending on
+ * `itemType`), so a single FK constraint cannot express it; referential
+ * integrity for `itemId` is the caller's responsibility (the application
+ * layer resolves and validates the item before calling `registerSale`).
+ * `unitPriceSnapshot`/`lineTotal` are the frozen price-at-time-of-sale —
+ * never a live join back to `price_list_items`/`pack_price_list_items`.
+ */
+export const saleItemTypeEnum = pgEnum("sale_item_type", ["flavor", "pack"]);
+
+export const salesOrderLines = pgTable("sales_order_lines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  salesOrderId: uuid("sales_order_id")
+    .notNull()
+    .references(() => salesOrders.id),
+  itemType: saleItemTypeEnum("item_type").notNull(),
+  itemId: uuid("item_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPriceSnapshot: numeric("unit_price_snapshot", { precision: 12, scale: 2 }).notNull(),
+  lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SalesOrderLine = typeof salesOrderLines.$inferSelect;
+export type NewSalesOrderLine = typeof salesOrderLines.$inferInsert;
