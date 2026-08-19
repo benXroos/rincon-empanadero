@@ -48,6 +48,21 @@ export const authConfig = {
       },
     }),
   ],
+  /**
+   * DEVIATION FROM DESIGN DECISION #4 (confirmed, not a leftover
+   * placeholder): design decision #4 calls for a DB session strategy, but
+   * Auth.js v5 hard-codes an incompatibility between the Credentials
+   * provider and `strategy: "database"` when every configured provider is
+   * `type: "credentials"` — see
+   * `@auth/core`'s `lib/utils/assert.js`, which throws
+   * `UnsupportedStrategy("Signing in with credentials only supported if
+   * JWT strategy is enabled")` in exactly that case. This app has only the
+   * Credentials provider, so `strategy: "database"` would make every
+   * `auth()` call throw at request time. JWT is therefore the only valid
+   * strategy here, not an unfixed Phase 1 deferral — see
+   * `sdd/rincon-empanadero-management-app/apply-progress` (Phase 4 batch)
+   * for the verification trail.
+   */
   session: {
     strategy: "jwt",
   },
