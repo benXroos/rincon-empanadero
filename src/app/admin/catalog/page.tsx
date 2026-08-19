@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/core/auth/require-role.server";
 import {
   listProducts,
   listFlavorsByProduct,
@@ -18,16 +17,13 @@ import { toggleAvailability } from "@/features/product-catalog/application/toggl
  * mutating server actions below are admin-gated, each via its own
  * requireRole(["admin"]) call (already unit-tested per action).
  *
- * NOTE (for Phase 4): this page calls requireRole() directly because there
- * is no shared protected layout yet — Phase 4 task 4.1 should move this
- * kind of view-access gate into a layout once one exists, per design
- * decision 5 ("every protected action AND layout"). Until Phase 4 ships a
- * login page, an unauthenticated visit here throws UnauthorizedError with
- * no redirect UX; that is expected, not a bug in this batch.
+ * Phase 4 (access-control): the view-access gate that used to live here
+ * directly (`requireRole(["admin", "colaborador"])`) has moved up to the
+ * shared `src/app/admin/layout.tsx`, which now covers every `/admin/*`
+ * route and redirects an unauthenticated visitor to `/login` instead of
+ * throwing an unhandled error — this page no longer needs its own check.
  */
 export default async function CatalogAdminPage() {
-  await requireRole(["admin", "colaborador"]);
-
   const products = await listProducts();
   const productsWithFlavors = await Promise.all(
     products.map(async (product) => ({
