@@ -1,6 +1,4 @@
-import { config } from "dotenv";
-
-config({ path: ".env.local" });
+import "@/test/load-test-env";
 
 import { test, expect } from "@playwright/test";
 import bcrypt from "bcryptjs";

@@ -1,3 +1,4 @@
+import "./src/test/load-test-env";
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
