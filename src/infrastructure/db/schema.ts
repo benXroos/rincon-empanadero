@@ -308,6 +308,8 @@ export const purchaseCategoryEnum = pgEnum("purchase_category", [
   "supplies",
 ]);
 
+export type PurchaseCategory = (typeof purchaseCategoryEnum.enumValues)[number];
+
 export const purchaseLogs = pgTable("purchase_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   itemName: text("item_name").notNull(),
