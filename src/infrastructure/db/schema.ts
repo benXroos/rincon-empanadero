@@ -284,3 +284,64 @@ export const shippingRates = pgTable("shipping_rates", {
 
 export type ShippingRate = typeof shippingRates.$inferSelect;
 export type NewShippingRate = typeof shippingRates.$inferInsert;
+
+/**
+ * purchase-expense-log capability (spec "Weekly purchase/expense
+ * registration", mvp-decisions #10 — owner: "yo solo necesito registrar las
+ * compras semanales de mercadería y lo que se gastó"). This is a
+ * REGISTRATION LOG ONLY — deliberately a single flat table, not the
+ * design sketch's `purchase`/`purchase_line` header+lines split, because
+ * there is no purchase "order" concept here (no supplier grouping requirement
+ * in any spec scenario) — one row IS one purchased item on one date.
+ * `quantity`/`unitPrice` are stored (per the design sketch's own rationale)
+ * so a FUTURE stock module could derive movements without a migration, but
+ * this capability itself MUST NOT track running stock levels or auto-deduct
+ * on sale (spec "No quantity-based stock tracking (non-goal)" — hard scope
+ * exclusion, not a deferred gap). Categories match the owner's real
+ * "Inventario 06-07" sheet categories exactly.
+ */
+export const purchaseCategoryEnum = pgEnum("purchase_category", [
+  "proteins_dairy",
+  "produce",
+  "prepared_fillings",
+  "packaging",
+  "supplies",
+]);
+
+export const purchaseLogs = pgTable("purchase_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  itemName: text("item_name").notNull(),
+  category: purchaseCategoryEnum("category").notNull(),
+  quantity: numeric("quantity", { precision: 12, scale: 4 }).notNull(),
+  unitPrice: numeric("unit_price", { precision: 12, scale: 4 }).notNull(),
+  totalCost: numeric("total_cost", { precision: 12, scale: 4 }).notNull(),
+  purchaseDate: timestamp("purchase_date", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type PurchaseLog = typeof purchaseLogs.$inferSelect;
+export type NewPurchaseLog = typeof purchaseLogs.$inferInsert;
+
+/**
+ * Waste/decomiso tracking BY FLAVOR (mvp-decisions #10, spreadsheet's
+ * "Decomiso" tab — carne cuchillo, carne mechada, pollo, jamón y queso,
+ * verdura, atún, queso y cebolla, capresse, bondiola). References the
+ * EXISTING `flavors` table (product-catalog capability, Phase 3) rather
+ * than a free-text flavor name, since flavors are already a first-class
+ * entity in this schema. `reason` is optional free text (spec only requires
+ * quantity wasted + date; a reason is a documented nice-to-have, matching
+ * the spreadsheet's currently-unfilled/manual "Decomiso" tab).
+ */
+export const decomisoLogs = pgTable("decomiso_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  flavorId: uuid("flavor_id")
+    .notNull()
+    .references(() => flavors.id),
+  quantityWasted: numeric("quantity_wasted", { precision: 12, scale: 4 }).notNull(),
+  wasteDate: timestamp("waste_date", { withTimezone: true }).notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type DecomisoLog = typeof decomisoLogs.$inferSelect;
+export type NewDecomisoLog = typeof decomisoLogs.$inferInsert;

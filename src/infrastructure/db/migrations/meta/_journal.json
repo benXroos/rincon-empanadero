@@ -50,6 +50,13 @@
       "when": 1787228075938,
       "tag": "0006_handy_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787235450974,
+      "tag": "0007_quick_darkhawk",
+      "breakpoints": true
     }
   ]
 }
