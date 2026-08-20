@@ -79,6 +79,14 @@ export const authConfig = {
         // cleanly across next-auth's beta JWT re-export; cast with a safe
         // fallback rather than fight the beta type surface here.
         session.user.role = (token.role as "admin" | "colaborador" | undefined) ?? "colaborador";
+        // staff-attendance capability: `token.sub` is Auth.js's own copy of
+        // the authorize()-returned `user.id`, set before this callback runs
+        // (see `@auth/core`'s callback action). The JWT-strategy base
+        // session object does NOT carry `id` by default — only
+        // name/email/image — so it must be copied explicitly for any
+        // server action to derive "who is the current staff member" from
+        // the session without a spoofable client-supplied id.
+        session.user.id = token.sub as string;
       }
       return session;
     },
