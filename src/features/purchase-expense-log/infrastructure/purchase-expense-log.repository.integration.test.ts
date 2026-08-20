@@ -13,7 +13,10 @@ import {
   listDecomisoLogs,
   listDecomisoLogsInRange,
 } from "@/features/purchase-expense-log/infrastructure/purchase-expense-log.repository";
-import { insertProduct, insertFlavor } from "@/features/product-catalog/infrastructure/product-catalog.repository";
+import {
+  insertProduct,
+  insertFlavor,
+} from "@/features/product-catalog/infrastructure/product-catalog.repository";
 
 /**
  * Real Neon Postgres round-trip test — same

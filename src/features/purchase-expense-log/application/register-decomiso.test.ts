@@ -15,9 +15,8 @@ vi.mock("@/features/purchase-expense-log/infrastructure/purchase-expense-log.rep
   insertDecomisoLog: insertDecomisoLogMock,
 }));
 
-const { registerDecomiso } = await import(
-  "@/features/purchase-expense-log/application/register-decomiso"
-);
+const { registerDecomiso } =
+  await import("@/features/purchase-expense-log/application/register-decomiso");
 
 const VALID_INPUT = {
   flavorId: "flavor-1",

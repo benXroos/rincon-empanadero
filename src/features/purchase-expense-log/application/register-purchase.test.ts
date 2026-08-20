@@ -15,9 +15,8 @@ vi.mock("@/features/purchase-expense-log/infrastructure/purchase-expense-log.rep
   insertPurchaseLog: insertPurchaseLogMock,
 }));
 
-const { registerPurchase } = await import(
-  "@/features/purchase-expense-log/application/register-purchase"
-);
+const { registerPurchase } =
+  await import("@/features/purchase-expense-log/application/register-purchase");
 
 const VALID_INPUT = {
   itemName: "Bolsas de papel",
