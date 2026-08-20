@@ -437,3 +437,39 @@ export const pyaDailyEstimates = pgTable("pya_daily_estimates", {
 
 export type PyaDailyEstimate = typeof pyaDailyEstimates.$inferSelect;
 export type NewPyaDailyEstimate = typeof pyaDailyEstimates.$inferInsert;
+
+/**
+ * pedidosya-reconciliation capability, Stage 2 (spec "Settlement variance
+ * calculation"; refined by the same design memory). Persists ONE row per
+ * order from PedidosYa's real settlement Excel file ("Lista de Pedidos"),
+ * carrying just the columns needed to compute variance against Stage 1's
+ * estimate (`matchedEstimateId`, nullable — null means this settlement row
+ * had no corresponding daily-estimate record, flagged as
+ * `variance_status = 'no_estimate_found'` per the owner's explicit ask to
+ * see exactly which orders are missing on either side, not just an
+ * aggregate number).
+ */
+export const pyaSettlementVarianceStatusEnum = pgEnum("pya_settlement_variance_status", [
+  "matched",
+  "mismatch",
+  "no_estimate_found",
+]);
+
+export type PyaSettlementVarianceStatus =
+  (typeof pyaSettlementVarianceStatusEnum.enumValues)[number];
+
+export const pyaSettlementLines = pgTable("pya_settlement_lines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderNumber: text("order_number").notNull(),
+  orderDate: date("order_date", { mode: "date" }).notNull(),
+  grossAmount: numeric("gross_amount", { precision: 12, scale: 4 }).notNull(),
+  netSaleAmount: numeric("net_sale_amount", { precision: 12, scale: 4 }).notNull(),
+  serviceFeeAmount: numeric("service_fee_amount", { precision: 12, scale: 4 }).notNull(),
+  matchedEstimateId: uuid("matched_estimate_id").references(() => pyaDailyEstimates.id),
+  varianceStatus: pyaSettlementVarianceStatusEnum("variance_status").notNull(),
+  varianceAmount: numeric("variance_amount", { precision: 12, scale: 4 }),
+  importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type PyaSettlementLine = typeof pyaSettlementLines.$inferSelect;
+export type NewPyaSettlementLine = typeof pyaSettlementLines.$inferInsert;

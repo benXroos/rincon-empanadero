@@ -71,6 +71,13 @@
       "when": 1787240816145,
       "tag": "0009_redundant_reptil",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787241332040,
+      "tag": "0010_spotty_wolf_cub",
+      "breakpoints": true
     }
   ]
 }
