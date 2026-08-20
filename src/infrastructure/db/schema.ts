@@ -8,6 +8,7 @@ import {
   boolean,
   integer,
   unique,
+  date,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -347,3 +348,45 @@ export const decomisoLogs = pgTable("decomiso_logs", {
 
 export type DecomisoLog = typeof decomisoLogs.$inferSelect;
 export type NewDecomisoLog = typeof decomisoLogs.$inferInsert;
+
+/**
+ * staff-attendance capability (spec "Daily check-in states"). One record per
+ * staff member (`users`) per calendar day (`unique().on(userId, date)`) —
+ * `date` uses Drizzle's date-only `mode: "date"` column (no time-of-day, no
+ * timezone) rather than `timestamp`, since a check-in belongs to a single
+ * day, not a moment. EXPLICITLY NOT tied to any pay/payroll calculation
+ * (spec: "salary is fixed monthly, handled outside this system") — this
+ * table has no rate/hours/amount column of any kind, only a status.
+ *
+ * A second check-in for the same user+day OVERWRITES the first (see
+ * `infrastructure/attendance-log.repository.ts#upsertAttendanceLog`) rather
+ * than erroring or duplicating a row — a staff member marked "llego_tarde"
+ * earlier in the day may legitimately correct it to "presente"/"ausente"
+ * later; the unique constraint models "the day's current answer", not an
+ * append-only check-in event log.
+ */
+export const attendanceStatusEnum = pgEnum("attendance_status", [
+  "presente",
+  "ausente",
+  "llego_tarde",
+]);
+
+export type AttendanceStatus = (typeof attendanceStatusEnum.enumValues)[number];
+
+export const attendanceLogs = pgTable(
+  "attendance_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    date: date("date", { mode: "date" }).notNull(),
+    status: attendanceStatusEnum("status").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [unique().on(table.userId, table.date)],
+);
+
+export type AttendanceLog = typeof attendanceLogs.$inferSelect;
+export type NewAttendanceLog = typeof attendanceLogs.$inferInsert;

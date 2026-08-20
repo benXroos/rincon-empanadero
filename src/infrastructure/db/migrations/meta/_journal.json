@@ -57,6 +57,13 @@
       "when": 1787235450974,
       "tag": "0007_quick_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787237406171,
+      "tag": "0008_sudden_ego",
+      "breakpoints": true
     }
   ]
 }
