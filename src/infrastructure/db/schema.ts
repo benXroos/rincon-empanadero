@@ -390,3 +390,50 @@ export const attendanceLogs = pgTable(
 
 export type AttendanceLog = typeof attendanceLogs.$inferSelect;
 export type NewAttendanceLog = typeof attendanceLogs.$inferInsert;
+
+/**
+ * pedidosya-reconciliation capability, Stage 1 (spec "Manual reconciliation
+ * entry"; refined by
+ * sdd/rincon-empanadero-management-app/pedidosya-reconciliation-design).
+ *
+ * Recorded as EACH PedidosYa order comes in, feeding the daily cash-register
+ * accuracy need ("caja diaria"): the store cannot know PedidosYa's real
+ * settlement for ~2 weeks, so this table holds a SAME-DAY ESTIMATE, later
+ * checked against reality by Stage 2 (`pya_settlement_lines` below).
+ *
+ * Two distinct derived figures are stored, never conflated (see
+ * `domain/compute-pya-estimate.ts`):
+ * - `cashInTillToday`: what physically enters the till TODAY (full gross for
+ *   a cash-collected-by-store order, zero for an app-paid order).
+ * - `estimatedNetKept`: what the store estimates it ultimately keeps after
+ *   PedidosYa's commission, regardless of who collected the money.
+ *
+ * `comisionTotalUsed` snapshots the commission rate applied at estimate
+ * time (mirrors design decision #7's snapshot-at-creation pattern for
+ * `sales_order_line`) so a later `pricing_profiles` change never rewrites
+ * an already-recorded estimate's meaning.
+ *
+ * `orderNumber` is UNIQUE — Stage 2's reconciliation import matches each
+ * real settlement row back to exactly one daily estimate by this number.
+ */
+export const pyaPaymentMethodEnum = pgEnum("pya_payment_method", [
+  "paid_in_app",
+  "cash_collected_by_store",
+]);
+
+export type PyaPaymentMethod = (typeof pyaPaymentMethodEnum.enumValues)[number];
+
+export const pyaDailyEstimates = pgTable("pya_daily_estimates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderNumber: text("order_number").notNull().unique(),
+  orderDate: date("order_date", { mode: "date" }).notNull(),
+  grossAmount: numeric("gross_amount", { precision: 12, scale: 4 }).notNull(),
+  paymentMethod: pyaPaymentMethodEnum("payment_method").notNull(),
+  comisionTotalUsed: numeric("comision_total_used", { precision: 6, scale: 4 }).notNull(),
+  cashInTillToday: numeric("cash_in_till_today", { precision: 12, scale: 4 }).notNull(),
+  estimatedNetKept: numeric("estimated_net_kept", { precision: 12, scale: 4 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type PyaDailyEstimate = typeof pyaDailyEstimates.$inferSelect;
+export type NewPyaDailyEstimate = typeof pyaDailyEstimates.$inferInsert;
