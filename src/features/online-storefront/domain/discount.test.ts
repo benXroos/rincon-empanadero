@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import Decimal from "decimal.js";
-import { applyDiscountCode, DiscountValidationError } from "@/features/online-storefront/domain/discount";
+import {
+  applyDiscountCode,
+  DiscountValidationError,
+} from "@/features/online-storefront/domain/discount";
 
 /**
  * Spec capability "online-storefront", requirement "Cart, discounts,

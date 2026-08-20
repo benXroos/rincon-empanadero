@@ -226,3 +226,28 @@ export const salesOrderLines = pgTable("sales_order_lines", {
 
 export type SalesOrderLine = typeof salesOrderLines.$inferSelect;
 export type NewSalesOrderLine = typeof salesOrderLines.$inferInsert;
+
+/**
+ * online-storefront capability (spec "Cart, discounts, shipping,
+ * fulfillment, checkout"). Admin-configurable discount codes — MVP GAP NOTE:
+ * the owner's old Empretienda site had discount codes, but the exact rules
+ * (single-use? expiry?) were never captured precisely. This is the simplest
+ * model that satisfies the spec: a code is `percentage` or `fixed_amount`,
+ * carries one `value`, and an `active` toggle — no expiry/usage-limit
+ * columns. See `features/online-storefront/domain/discount.ts`. The owner
+ * must review the actual codes/values before going live; the mechanism is
+ * intentionally simple and swappable.
+ */
+export const discountCodeTypeEnum = pgEnum("discount_code_type", ["percentage", "fixed_amount"]);
+
+export const discountCodes = pgTable("discount_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: text("code").notNull().unique(),
+  type: discountCodeTypeEnum("type").notNull(),
+  value: numeric("value", { precision: 12, scale: 2 }).notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type DiscountCode = typeof discountCodes.$inferSelect;
+export type NewDiscountCode = typeof discountCodes.$inferInsert;
