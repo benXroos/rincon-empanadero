@@ -7,10 +7,9 @@ import { insertDecomisoLog } from "@/features/purchase-expense-log/infrastructur
 
 /**
  * `registerDecomiso` — the waste/decomiso-by-flavor write half of the
- * purchase-expense-log capability (mvp-decisions #10). Same admin-only
- * permission boundary as `registerPurchase` — see that file's doc comment
- * for the full reasoning; colaborador keeps read access via
- * `listDecomisoLogs`/`listDecomisoLogsInRange`, which carry no role check.
+ * purchase-expense-log capability (mvp-decisions #10). Same permission
+ * boundary as `registerPurchase` — both admin and colaborador can log
+ * decomiso entries (`requireRole(["admin", "colaborador"])`).
  */
 export interface RegisterDecomisoInput {
   flavorId: string;
@@ -21,7 +20,7 @@ export interface RegisterDecomisoInput {
 }
 
 export async function registerDecomiso(input: RegisterDecomisoInput) {
-  await requireRole(["admin"]);
+  await requireRole(["admin", "colaborador"]);
 
   const quantityWasted = validateDecomisoQuantity(input.quantityWasted);
 

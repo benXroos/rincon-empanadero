@@ -27,19 +27,17 @@ const VALID_INPUT = {
 };
 
 /**
- * Per the confirmed MVP permission boundary (spec's access-control table
- * does not list purchase/decomiso write access for colaborador — defaulted
- * to admin-only, flagged in the apply report): `registerPurchase` MUST call
- * `requireRole(["admin"])`, mirroring `createProduct`/`toggleAvailability`,
- * NOT `registerSale`'s `["admin", "colaborador"]`.
+ * Owner-confirmed permission boundary: both admin and colaborador can
+ * register purchases (`requireRole(["admin", "colaborador"])`), matching
+ * `registerSale`'s boundary.
  */
-describe("registerPurchase (admin-only server action)", () => {
+describe("registerPurchase (admin and colaborador server action)", () => {
   beforeEach(() => {
     requireRoleMock.mockReset();
     insertPurchaseLogMock.mockReset();
   });
 
-  it("denies a colaborador and never touches the repository", async () => {
+  it("denies an unauthenticated caller and never touches the repository", async () => {
     requireRoleMock.mockRejectedValueOnce(new UnauthorizedError());
 
     await expect(registerPurchase(VALID_INPUT)).rejects.toThrow(UnauthorizedError);
@@ -53,7 +51,7 @@ describe("registerPurchase (admin-only server action)", () => {
 
     const resultado = await registerPurchase(VALID_INPUT);
 
-    expect(requireRoleMock).toHaveBeenCalledWith(["admin"]);
+    expect(requireRoleMock).toHaveBeenCalledWith(["admin", "colaborador"]);
     expect(insertPurchaseLogMock).toHaveBeenCalledWith(
       expect.objectContaining({
         itemName: "Bolsas de papel",
@@ -64,6 +62,15 @@ describe("registerPurchase (admin-only server action)", () => {
       }),
     );
     expect(resultado.id).toBe("purchase-1");
+  });
+
+  it("allows a colaborador and persists the purchase (triangulation on role)", async () => {
+    requireRoleMock.mockResolvedValueOnce({ user: { role: "colaborador" } });
+    insertPurchaseLogMock.mockResolvedValueOnce({ id: "purchase-3", ...VALID_INPUT });
+
+    const resultado = await registerPurchase(VALID_INPUT);
+
+    expect(resultado.id).toBe("purchase-3");
   });
 
   it("computes a different total for a different quantity/unit price (triangulation)", async () => {

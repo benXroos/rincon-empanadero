@@ -26,17 +26,16 @@ const VALID_INPUT = {
 };
 
 /**
- * Same admin-only permission boundary as `registerPurchase` — decomiso
- * (waste) logging is a write to the same capability, no spec scenario
- * grants colaborador write access to it.
+ * Same permission boundary as `registerPurchase` — both admin and
+ * colaborador can log decomiso entries.
  */
-describe("registerDecomiso (admin-only server action)", () => {
+describe("registerDecomiso (admin and colaborador server action)", () => {
   beforeEach(() => {
     requireRoleMock.mockReset();
     insertDecomisoLogMock.mockReset();
   });
 
-  it("denies a colaborador and never touches the repository", async () => {
+  it("denies an unauthenticated caller and never touches the repository", async () => {
     requireRoleMock.mockRejectedValueOnce(new UnauthorizedError());
 
     await expect(registerDecomiso(VALID_INPUT)).rejects.toThrow(UnauthorizedError);
@@ -50,7 +49,7 @@ describe("registerDecomiso (admin-only server action)", () => {
 
     const resultado = await registerDecomiso(VALID_INPUT);
 
-    expect(requireRoleMock).toHaveBeenCalledWith(["admin"]);
+    expect(requireRoleMock).toHaveBeenCalledWith(["admin", "colaborador"]);
     expect(insertDecomisoLogMock).toHaveBeenCalledWith(
       expect.objectContaining({
         flavorId: "flavor-1",
@@ -59,6 +58,15 @@ describe("registerDecomiso (admin-only server action)", () => {
       }),
     );
     expect(resultado.id).toBe("decomiso-1");
+  });
+
+  it("allows a colaborador and persists the decomiso entry (triangulation on role)", async () => {
+    requireRoleMock.mockResolvedValueOnce({ user: { role: "colaborador" } });
+    insertDecomisoLogMock.mockResolvedValueOnce({ id: "decomiso-3", ...VALID_INPUT });
+
+    const resultado = await registerDecomiso(VALID_INPUT);
+
+    expect(resultado.id).toBe("decomiso-3");
   });
 
   it("allows an admin to log a decomiso entry with no reason (optional field, triangulation)", async () => {

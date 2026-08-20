@@ -9,16 +9,9 @@ import type { PurchaseCategory } from "@/infrastructure/db/schema";
 /**
  * `registerPurchase` — the write half of the purchase-expense-log
  * capability (spec "Weekly purchase/expense registration", mvp-decisions
- * #10). ADMIN-ONLY: the spec's access-control permission table lists
- * "Register sales"/"Mark attendance"/"View availability/inventory" as
- * explicit colaborador-allowed actions, but says nothing about colaborador
- * WRITING purchase/decomiso records — per the reviewed permission boundary,
- * this defaults to admin-only (`requireRole(["admin"])`, mirroring
- * `createProduct`/`toggleAvailability`) rather than assuming colaborador
- * write access that no spec scenario confirms. Colaborador retains READ
- * access via `listPurchaseLogs`/`listPurchaseLogsInRange`, which carry no
- * role check of their own (same pattern as `listProducts`) and are reachable
- * through the shared `/admin` layout's any-authenticated-session gate.
+ * #10). Owner-confirmed: both admin and colaborador can register purchases
+ * (`requireRole(["admin", "colaborador"])`), matching `registerSale`'s
+ * boundary — colaborador does the day-to-day weekly purchasing in practice.
  *
  * This is a REGISTRATION LOG ONLY — `computePurchaseTotal` only multiplies
  * quantity × unit price; there is no stock-quantity tracking or auto-
@@ -34,7 +27,7 @@ export interface RegisterPurchaseInput {
 }
 
 export async function registerPurchase(input: RegisterPurchaseInput) {
-  await requireRole(["admin"]);
+  await requireRole(["admin", "colaborador"]);
 
   const { quantity, unitPrice, totalCost } = computePurchaseTotal(input);
 
