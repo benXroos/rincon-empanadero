@@ -13,9 +13,7 @@ vi.mock("@/features/staff-attendance/infrastructure/attendance-log.repository", 
   upsertAttendanceLog: upsertAttendanceLogMock,
 }));
 
-const { markAttendance } = await import(
-  "@/features/staff-attendance/application/mark-attendance"
-);
+const { markAttendance } = await import("@/features/staff-attendance/application/mark-attendance");
 
 /**
  * `markAttendance` marks the CALLER's own attendance, derived from the

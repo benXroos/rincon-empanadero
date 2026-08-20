@@ -1,14 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const {
-  requireSessionMock,
-  listAttendanceLogsInRangeMock,
-  listAttendanceLogsInRangeForUserMock,
-} = vi.hoisted(() => ({
-  requireSessionMock: vi.fn(),
-  listAttendanceLogsInRangeMock: vi.fn(),
-  listAttendanceLogsInRangeForUserMock: vi.fn(),
-}));
+const { requireSessionMock, listAttendanceLogsInRangeMock, listAttendanceLogsInRangeForUserMock } =
+  vi.hoisted(() => ({
+    requireSessionMock: vi.fn(),
+    listAttendanceLogsInRangeMock: vi.fn(),
+    listAttendanceLogsInRangeForUserMock: vi.fn(),
+  }));
 
 vi.mock("@/core/auth/require-role.server", () => ({
   requireSession: requireSessionMock,
@@ -19,9 +16,8 @@ vi.mock("@/features/staff-attendance/infrastructure/attendance-log.repository", 
   listAttendanceLogsInRangeForUser: listAttendanceLogsInRangeForUserMock,
 }));
 
-const { listAttendanceInRange } = await import(
-  "@/features/staff-attendance/application/list-attendance"
-);
+const { listAttendanceInRange } =
+  await import("@/features/staff-attendance/application/list-attendance");
 
 const START = new Date("2026-08-10T00:00:00Z");
 const END = new Date("2026-08-17T00:00:00Z");

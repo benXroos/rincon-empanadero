@@ -57,11 +57,7 @@ export async function listAttendanceLogsInRange(start: Date, end: Date) {
  * ONE staff member's own attendance within a date range — the self-view
  * query a colaborador is allowed to see without any admin role.
  */
-export async function listAttendanceLogsInRangeForUser(
-  userId: string,
-  start: Date,
-  end: Date,
-) {
+export async function listAttendanceLogsInRangeForUser(userId: string, start: Date, end: Date) {
   return getDb()
     .select()
     .from(attendanceLogs)
