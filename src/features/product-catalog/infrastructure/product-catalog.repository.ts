@@ -67,6 +67,16 @@ export async function listPacks() {
 }
 
 /**
+ * Fetches a single pack by id (or `undefined` if it does not exist). Phase 6
+ * (online-storefront) needs a pack's `unitCount` to validate a customer's
+ * mixed-flavor breakdown without fetching every pack via `listPacks()`.
+ */
+export async function getPackById(packId: string) {
+  const rows = await getDb().select().from(packs).where(eq(packs.id, packId));
+  return rows[0];
+}
+
+/**
  * Replaces the full set of flavors eligible for `packId` with exactly
  * `flavorIds` (delete-then-insert, inside one call) — configuring a pack's
  * eligible flavors is a full replace, not an incremental add/remove.

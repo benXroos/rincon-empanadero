@@ -23,6 +23,7 @@ import {
   listPriceListItems,
   upsertPackPriceListItem,
   listPackPriceListItems,
+  getPackById,
 } from "@/features/product-catalog/infrastructure/product-catalog.repository";
 
 /**
@@ -149,5 +150,23 @@ describe.skipIf(!hasDatabase)("product-catalog repository (live Neon integration
     // must NOT equal that naive sum.
     expect(items[0]?.price).toBe("25000.00");
     expect(items[0]?.price).not.toBe("30000.00");
+  });
+
+  /**
+   * Phase 6 (online-storefront): the cart's pack-selection use-case needs a
+   * pack's `unitCount` to validate a customer's mixed-flavor breakdown —
+   * `listPacks()` alone forces fetching every pack to find one by id.
+   */
+  it("fetches a single pack by id, or undefined when it does not exist", async () => {
+    const suffix = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const docena = await insertPack({ name: `Docena ${suffix}`, unitCount: 12 });
+    createdPackIds.push(docena.id);
+
+    const found = await getPackById(docena.id);
+    const notFound = await getPackById("00000000-0000-0000-0000-000000000000");
+
+    expect(found?.id).toBe(docena.id);
+    expect(found?.unitCount).toBe(12);
+    expect(notFound).toBeUndefined();
   });
 });
