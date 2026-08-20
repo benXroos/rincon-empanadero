@@ -43,6 +43,13 @@
       "when": 1787199158744,
       "tag": "0005_overconfident_squirrel_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787228075938,
+      "tag": "0006_handy_smasher",
+      "breakpoints": true
     }
   ]
 }

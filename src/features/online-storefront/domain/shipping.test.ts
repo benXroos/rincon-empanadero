@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveShippingCost, ShippingValidationError } from "@/features/online-storefront/domain/shipping";
+import {
+  resolveShippingCost,
+  ShippingValidationError,
+} from "@/features/online-storefront/domain/shipping";
 
 /**
  * Spec capability "online-storefront", requirement "Cart, discounts,

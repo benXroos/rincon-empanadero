@@ -185,6 +185,17 @@ export type NewPackPriceListItem = typeof packPriceListItems.$inferInsert;
  */
 export const paymentMethodEnum = pgEnum("payment_method", ["transfer", "cash"]);
 
+/**
+ * `fulfillment_method` (spec "Delivery-or-pickup fulfillment choice", added
+ * in Phase 6b) is recorded on `sales_orders` ONLY for orders placed through
+ * the new public checkout action — nullable because a staff-entered sale
+ * via `registerSale` (manual walk-in/phone entry) has no fulfillment
+ * concept. `postalCode` below is likewise nullable and only meaningful when
+ * `fulfillmentMethod` is `"delivery"`. Both are additive columns on this
+ * already-existing Phase 5 table — no existing column changed.
+ */
+export const fulfillmentMethodEnum = pgEnum("fulfillment_method", ["pickup", "delivery"]);
+
 export const salesOrders = pgTable("sales_orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   channel: salesChannelEnum("channel").notNull(),
@@ -192,6 +203,8 @@ export const salesOrders = pgTable("sales_orders", {
   totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
   soldAt: timestamp("sold_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  fulfillmentMethod: fulfillmentMethodEnum("fulfillment_method"),
+  postalCode: text("postal_code"),
 });
 
 export type SalesOrder = typeof salesOrders.$inferSelect;
@@ -251,3 +264,23 @@ export const discountCodes = pgTable("discount_codes", {
 
 export type DiscountCode = typeof discountCodes.$inferSelect;
 export type NewDiscountCode = typeof discountCodes.$inferInsert;
+
+/**
+ * online-storefront capability (spec "Cart, discounts, shipping,
+ * fulfillment, checkout"). Admin-configurable shipping cost by postal-code
+ * PREFIX (see `features/online-storefront/domain/shipping.ts` for why a
+ * prefix table was chosen over a single flat rate) — `postalCodePrefix` is
+ * unique so `upsertShippingRate` can update a zone's rate in place. MVP GAP
+ * NOTE, same discipline as `discountCodes`: this batch only builds the
+ * mechanism — the owner must review the actual configured zones/rates
+ * before going live.
+ */
+export const shippingRates = pgTable("shipping_rates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  postalCodePrefix: text("postal_code_prefix").notNull().unique(),
+  rate: numeric("rate", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type ShippingRate = typeof shippingRates.$inferSelect;
+export type NewShippingRate = typeof shippingRates.$inferInsert;

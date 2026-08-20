@@ -4,10 +4,12 @@ config({ path: ".env.local" });
 import { afterEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/infrastructure/db/client";
-import { discountCodes } from "@/infrastructure/db/schema";
+import { discountCodes, shippingRates } from "@/infrastructure/db/schema";
 import {
   upsertDiscountCode,
   getDiscountCodeByCode,
+  upsertShippingRate,
+  listShippingRates,
 } from "@/features/online-storefront/infrastructure/storefront.repository";
 
 /**
@@ -45,6 +47,33 @@ describe.skipIf(!hasDatabase)(
       const found = await getDiscountCodeByCode("DOES-NOT-EXIST");
 
       expect(found).toBeUndefined();
+    });
+  },
+);
+
+describe.skipIf(!hasDatabase)(
+  "storefront repository — shipping rates (live Neon integration)",
+  () => {
+    const createdPrefixes: string[] = [];
+
+    afterEach(async () => {
+      const db = getDb();
+      for (const prefix of createdPrefixes.splice(0)) {
+        await db.delete(shippingRates).where(eq(shippingRates.postalCodePrefix, prefix));
+      }
+    });
+
+    it("upserts a shipping rate so a second write for the same prefix updates, not duplicates", async () => {
+      const prefix = `TESTPFX-${Date.now()}`;
+      createdPrefixes.push(prefix);
+
+      await upsertShippingRate(prefix, "1000.00");
+      await upsertShippingRate(prefix, "1500.00");
+
+      const rates = await listShippingRates();
+      const found = rates.find((rate) => rate.postalCodePrefix === prefix);
+
+      expect(found?.rate).toBe("1500.00");
     });
   },
 );
