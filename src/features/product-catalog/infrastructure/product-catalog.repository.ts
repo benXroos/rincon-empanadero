@@ -96,6 +96,24 @@ export async function setPackFlavors(packId: string, flavorIds: string[]) {
 }
 
 /**
+ * The raw eligibility set for a pack (`pack_slots` join), regardless of
+ * current availability — DISTINCT from `listChoosableFlavorsForPack` below.
+ * `pack-selection.ts#validatePackSelection` needs this set separate from
+ * `listAvailableFlavors()`'s set to tell "not eligible for this pack" apart
+ * from "eligible but no longer available" (see its test cases).
+ */
+export async function listEligibleFlavorsForPack(packId: string) {
+  const slots = await getDb().select().from(packSlots).where(eq(packSlots.packId, packId));
+  const eligibleFlavorIds = slots.map((slot) => slot.flavorId);
+
+  if (eligibleFlavorIds.length === 0) {
+    return [];
+  }
+
+  return getDb().select().from(flavors).where(inArray(flavors.id, eligibleFlavorIds));
+}
+
+/**
  * The "choosable flavors" query for a pack (spec scenario "Unavailable
  * flavor excluded from pack"): only flavors that are BOTH eligible for this
  * pack AND currently available. Feeds Phase 6's cart use-case together with

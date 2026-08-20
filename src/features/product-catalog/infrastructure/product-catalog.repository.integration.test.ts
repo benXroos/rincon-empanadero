@@ -19,6 +19,7 @@ import {
   setPackFlavors,
   setFlavorAvailability,
   listChoosableFlavorsForPack,
+  listEligibleFlavorsForPack,
   upsertPriceListItem,
   listPriceListItems,
   upsertPackPriceListItem,
@@ -168,5 +169,41 @@ describe.skipIf(!hasDatabase)("product-catalog repository (live Neon integration
     expect(found?.id).toBe(docena.id);
     expect(found?.unitCount).toBe(12);
     expect(notFound).toBeUndefined();
+  });
+
+  /**
+   * Phase 6 (online-storefront): `validatePackSelection` needs the
+   * ELIGIBLE set (raw `pack_slots`, regardless of current availability) as a
+   * set DISTINCT from the AVAILABLE set (`listAvailableFlavors()`) so it can
+   * tell "not eligible for this pack" apart from "eligible but no longer
+   * available" — `listChoosableFlavorsForPack` already intersects both and
+   * would collapse that distinction if reused for both parameters.
+   */
+  it("lists a pack's eligible flavors regardless of their current availability", async () => {
+    const suffix = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const product = await insertProduct({ name: `Empanada ${suffix}` });
+    createdProductIds.push(product.id);
+
+    const carne = await insertFlavor({
+      productId: product.id,
+      name: `Carne cuchillo ${suffix}`,
+      costoMateriales: "1003.4096",
+    });
+    const pollo = await insertFlavor({
+      productId: product.id,
+      name: `Pollo ${suffix}`,
+      costoMateriales: "800.0000",
+    });
+    createdFlavorIds.push(carne.id, pollo.id);
+
+    const docena = await insertPack({ name: `Docena ${suffix}`, unitCount: 12 });
+    createdPackIds.push(docena.id);
+
+    await setPackFlavors(docena.id, [carne.id, pollo.id]);
+    await setFlavorAvailability(pollo.id, false);
+
+    const eligible = await listEligibleFlavorsForPack(docena.id);
+
+    expect(eligible.map((f) => f.id).sort()).toEqual([carne.id, pollo.id].sort());
   });
 });
