@@ -38,20 +38,21 @@ export class PricingParamsError extends Error {
 
 const ONE = new Decimal(1);
 
-export function calcularPrecio(
-  costoMateriales: Decimal.Value,
-  params: PricingProfileParams,
-): PrecioCalculado {
-  const costo = new Decimal(costoMateriales);
-  const decomiso = new Decimal(params.decomisoPct);
-  const ganancia = new Decimal(params.gananciaDeseadaPct);
+/**
+ * Extracted out of `calcularPrecio` so any OTHER capability that needs the
+ * SAME commission percentage (e.g. Phase 9's pedidosya-reconciliation daily
+ * estimate) can resolve `comisionTotal` from a pricing profile without
+ * duplicating this formula as a second hardcoded constant.
+ */
+export function calcularComisionTotal(
+  params: Pick<
+    PricingProfileParams,
+    "comisionPlataformaPct" | "ivaComisionPct" | "comisionTarjetasPct"
+  >,
+): Decimal {
   const comisionPlataforma = new Decimal(params.comisionPlataformaPct);
   const ivaComision = new Decimal(params.ivaComisionPct);
   const comisionTarjetas = new Decimal(params.comisionTarjetasPct);
-
-  if (decomiso.gte(ONE)) {
-    throw new PricingParamsError("decomisoPct must be less than 1 (100%).");
-  }
 
   const comisionTotal = comisionPlataforma.times(ivaComision.plus(ONE)).plus(comisionTarjetas);
 
@@ -60,6 +61,23 @@ export function calcularPrecio(
       "comisionTotal (comisionPlataforma * (1 + ivaComision) + comisionTarjetas) must be less than 1 (100%).",
     );
   }
+
+  return comisionTotal;
+}
+
+export function calcularPrecio(
+  costoMateriales: Decimal.Value,
+  params: PricingProfileParams,
+): PrecioCalculado {
+  const costo = new Decimal(costoMateriales);
+  const decomiso = new Decimal(params.decomisoPct);
+  const ganancia = new Decimal(params.gananciaDeseadaPct);
+
+  if (decomiso.gte(ONE)) {
+    throw new PricingParamsError("decomisoPct must be less than 1 (100%).");
+  }
+
+  const comisionTotal = calcularComisionTotal(params);
 
   const costoReal = costo.div(ONE.minus(decomiso));
   const precioSugerido = costoReal.times(ganancia.plus(ONE)).div(ONE.minus(comisionTotal));

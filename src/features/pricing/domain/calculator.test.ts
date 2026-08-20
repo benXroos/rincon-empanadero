@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import Decimal from "decimal.js";
 import {
   calcularPrecio,
+  calcularComisionTotal,
   redondearPrecio,
   PricingParamsError,
 } from "@/features/pricing/domain/calculator";
@@ -97,6 +98,37 @@ describe("calcularPrecio", () => {
     expect(() =>
       calcularPrecio("1000", {
         ...GOLDEN_PARAMS,
+        comisionPlataformaPct: "0.90",
+        ivaComisionPct: "0.21",
+        comisionTarjetasPct: "0.10",
+      }),
+    ).toThrow(PricingParamsError);
+  });
+});
+
+/**
+ * `calcularComisionTotal` is extracted out of `calcularPrecio` so Phase 9
+ * (pedidosya-reconciliation) can reuse the SAME commission-resolution logic
+ * for its daily net-kept estimate, instead of duplicating the
+ * `comisionPlataforma * (1 + ivaComision) + comisionTarjetas` formula as a
+ * second hardcoded constant. `calcularPrecio` itself now calls this function
+ * internally — the golden tests above prove that refactor is behavior
+ * preserving.
+ */
+describe("calcularComisionTotal", () => {
+  it("computes comisionTotal from just the three commission percentages", () => {
+    const comisionTotal = calcularComisionTotal({
+      comisionPlataformaPct: "0.23",
+      ivaComisionPct: "0.21",
+      comisionTarjetasPct: "0.03",
+    });
+
+    expect(comisionTotal.toString()).toBe("0.3083");
+  });
+
+  it("rejects a comisionTotal of 100% or more", () => {
+    expect(() =>
+      calcularComisionTotal({
         comisionPlataformaPct: "0.90",
         ivaComisionPct: "0.21",
         comisionTarjetasPct: "0.10",
